@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 import os
+import sys
 import gzip
 import urllib.request
 
@@ -42,7 +43,7 @@ def dense_to_one_hot(y, max_value=9, min_value=0):
 
 
 def maybe_download(SOURCE_URL, filename, work_directory):
-    """Download the data from Yann's website, unless it's already here."""
+    """Download the data from maintainer website, unless it's already here."""
     if not os.path.exists(work_directory):
         os.makedirs(work_directory)
     filepath = os.path.join(work_directory, filename)
@@ -276,6 +277,7 @@ def read_data_sets(name_dataset, home_path, if_autoencoder=True, reshape=True):
     train_dir = os.path.join(home_path, "data", name_dataset + "_data")
 
     print(f"Begin loading data for {name_dataset}")
+
     if name_dataset == "MNIST":
         if_autoencoder = if_autoencoder
 
@@ -302,6 +304,7 @@ def read_data_sets(name_dataset, home_path, if_autoencoder=True, reshape=True):
         # see "Reducing the Dimensionality of Data with Neural Networks"
         train_images = np.multiply(train_images, 1.0 / 255.0)
         test_images = np.multiply(test_images, 1.0 / 255.0)
+
     elif name_dataset == "FACES":
         if_autoencoder = if_autoencoder
         if_faces = True
@@ -333,6 +336,32 @@ def read_data_sets(name_dataset, home_path, if_autoencoder=True, reshape=True):
 
         train_labels = train_images
         test_labels = test_images
+
+    elif name_dataset == 'CURVES':
+        if_autoencoder = if_autoencoder
+        
+        SOURCE_URL = 'http://www.cs.toronto.edu/~jmartens/'
+        TRAIN_IMAGES = 'digs3pts_1.mat'
+        
+        local_file = maybe_download(SOURCE_URL, TRAIN_IMAGES, train_dir)
+        print(f"Data read from {local_file}")
+
+        import mat4py
+    
+        images_ = mat4py.loadmat(local_file)
+            
+        train_images = np.asarray(images_['bdata'])
+        test_images = np.asarray(images_['bdatatest'])
+        
+        train_images = train_images[:, :, np.newaxis, np.newaxis]
+        test_images = test_images[:, :, np.newaxis, np.newaxis]
+        
+        train_labels = train_images
+        test_labels = test_images
+
+    else:
+        print('error: Dataset not supported.')
+        sys.exit()
 
     validation_images = train_images[:VALIDATION_SIZE]
     validation_labels = train_labels[:VALIDATION_SIZE]
